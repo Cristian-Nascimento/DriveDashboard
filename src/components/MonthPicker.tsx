@@ -18,9 +18,11 @@ type Props = {
   suffix?: string;
   /** Outros parâmetros de URL a manter. */
   extra?: Record<string, string>;
+  /** Classes do contêiner (padrão: largura total no celular, automática de md para cima). */
+  className?: string;
 };
 
-export function MonthPicker({ value, current, basePath, param, suffix = "", extra = {} }: Props) {
+export function MonthPicker({ value, current, basePath, param, suffix = "", extra = {}, className = "w-full md:w-auto" }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [year, setYear] = useState(() => Number(value.slice(0, 4)));
@@ -55,7 +57,7 @@ export function MonthPicker({ value, current, basePath, param, suffix = "", extr
   }
 
   return (
-    <div ref={box} className="relative">
+    <div ref={box} className={`relative ${className}`}>
       <button
         type="button"
         onClick={() => {
@@ -70,7 +72,7 @@ export function MonthPicker({ value, current, basePath, param, suffix = "", extr
         }}
         aria-haspopup="dialog"
         aria-expanded={open}
-        className="btn-ghost !gap-2 !px-3.5"
+        className="btn-ghost w-full !gap-2 !px-3.5 md:w-auto"
       >
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
           <rect x="3.5" y="5" width="17" height="15" rx="3" />

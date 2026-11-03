@@ -8,6 +8,7 @@ import { METHODS, PLATFORMS } from "@/lib/constants";
 import { getSummary } from "@/lib/stats";
 import { DailyChart } from "@/components/DailyChart";
 import { MonthPicker } from "@/components/MonthPicker";
+import { FilterBar } from "@/components/FilterBar";
 import { Empty, PageHeader, Section, Stat, Tabs } from "@/components/ui";
 
 export const metadata = { title: "Painel · Pop Dashboard" };
@@ -48,15 +49,17 @@ export default async function Painel({ searchParams }: { searchParams: Promise<{
   return (
     <>
       <PageHeader title={`Olá, ${user.name.split(" ")[0]}`} subtitle={subtitle}>
-        <div className="flex flex-wrap items-center gap-2">
-          <Tabs
-            items={[
-              { href: "/?p=hoje", label: "Hoje", active: period === "hoje" },
-              { href: "/?p=semana", label: "Semana", active: period === "semana" },
-              { href: "/", label: "Mês", active: period === "mes" },
-            ]}
-          />
-          <MonthPicker value={monthRef.slice(0, 7)} current={today.slice(0, 7)} basePath="/" param="mes" />
+        <div className="flex w-full flex-wrap items-center gap-2 md:w-auto">
+          <FilterBar summary={period === "hoje" ? "Hoje" : period === "semana" ? "Semana atual" : labelMonth(monthRef)}>
+            <Tabs
+              items={[
+                { href: "/?p=hoje", label: "Hoje", active: period === "hoje" },
+                { href: "/?p=semana", label: "Semana", active: period === "semana" },
+                { href: "/", label: "Mês", active: period === "mes" },
+              ]}
+            />
+            <MonthPicker value={monthRef.slice(0, 7)} current={today.slice(0, 7)} basePath="/" param="mes" />
+          </FilterBar>
           <Link href="/dia" className="btn hidden sm:inline-flex">+ Lançar dia</Link>
         </div>
       </PageHeader>

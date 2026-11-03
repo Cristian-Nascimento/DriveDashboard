@@ -8,6 +8,7 @@ import { getSummary } from "@/lib/stats";
 import { deleteEarning, deleteExpense, deleteSale } from "@/app/actions/data";
 import { Empty, PageHeader, Section, Stat } from "@/components/ui";
 import { DayForm } from "@/components/DayForm";
+import { DayDateNav } from "@/components/DayDateNav";
 
 export const metadata = { title: "Lançar dia · Pop Dashboard" };
 
@@ -50,17 +51,9 @@ export default async function DiaPage({ searchParams }: { searchParams: Promise<
 
   return (
     <>
-      <PageHeader title="Lançar o dia" subtitle={labelDate(date)}>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link href={`/dia?date=${addDays(date, -1)}`} className="btn-ghost !px-3" aria-label="Dia anterior">‹</Link>
-          <form method="get" className="flex items-center gap-2">
-            <input type="date" name="date" defaultValue={date} className="input !w-auto" aria-label="Data" />
-            <button className="btn-ghost">Ir</button>
-          </form>
-          <Link href={`/dia?date=${addDays(date, 1)}`} className="btn-ghost !px-3" aria-label="Próximo dia">›</Link>
-          {!isToday && <Link href="/dia" className="btn-ghost">Hoje</Link>}
-        </div>
-      </PageHeader>
+      <PageHeader title="Lançar o dia" subtitle={labelDate(date)} />
+
+      <DayDateNav date={date} prev={addDays(date, -1)} next={addDays(date, 1)} isToday={isToday} />
 
       {sp.ok === "vazio" && <p className="mb-4 rounded-xl bg-brand-soft px-4 py-2.5 text-sm text-muted">Nada novo para salvar.</p>}
       {sp.ok && sp.ok !== "vazio" && <p className="mb-4 rounded-xl bg-pos/10 px-4 py-2.5 text-sm text-pos">Salvo.</p>}

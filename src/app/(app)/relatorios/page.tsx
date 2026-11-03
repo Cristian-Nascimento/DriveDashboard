@@ -5,6 +5,7 @@ import { brl, num } from "@/lib/format";
 import { getSummary } from "@/lib/stats";
 import { Empty, PageHeader, Section, Stat, Tabs } from "@/components/ui";
 import { MonthPicker } from "@/components/MonthPicker";
+import { FilterBar } from "@/components/FilterBar";
 
 export const metadata = { title: "Relatórios · Pop Dashboard" };
 
@@ -26,18 +27,20 @@ export default async function Relatorios({ searchParams }: { searchParams: Promi
   return (
     <>
       <PageHeader title="Relatórios" subtitle={title}>
-        <div className="flex flex-wrap items-center gap-2">
+        <FilterBar summary={`${tipo === "semanal" ? "Semanal" : "Mensal"} · ${title}`}>
           <Tabs
             items={[
               { href: `/relatorios?tipo=semanal&ref=${ref}`, label: "Semanal", active: tipo === "semanal" },
               { href: `/relatorios?tipo=mensal&ref=${ref}`, label: "Mensal", active: tipo === "mensal" },
             ]}
           />
-          <MonthPicker value={ref.slice(0, 7)} current={todayStr().slice(0, 7)} basePath="/relatorios" param="ref" suffix="-01" extra={{ tipo }} />
-          <Link href={`/relatorios?tipo=${tipo}&ref=${prev}`} className="btn-ghost !px-3" aria-label="Período anterior">‹</Link>
-          <Link href={`/relatorios?tipo=${tipo}&ref=${next}`} className="btn-ghost !px-3" aria-label="Próximo período">›</Link>
+          <div className="flex items-center gap-2">
+            <MonthPicker value={ref.slice(0, 7)} current={todayStr().slice(0, 7)} basePath="/relatorios" param="ref" suffix="-01" extra={{ tipo }} className="min-w-0 flex-1 md:flex-none" />
+            <Link href={`/relatorios?tipo=${tipo}&ref=${prev}`} className="btn-ghost !px-3.5" aria-label="Período anterior">‹</Link>
+            <Link href={`/relatorios?tipo=${tipo}&ref=${next}`} className="btn-ghost !px-3.5" aria-label="Próximo período">›</Link>
+          </div>
           <a href={`/relatorios/csv?from=${from}&to=${to}`} className="btn-ghost">Baixar planilha (CSV)</a>
-        </div>
+        </FilterBar>
       </PageHeader>
 
       <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { logout } from "@/app/actions/auth";
+import { ThemeToggle } from "./ThemeToggle";
 
 const ITEMS = [
   { href: "/", label: "Painel", icon: "M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" },
@@ -10,7 +11,7 @@ const ITEMS = [
   { href: "/contas", label: "Contas", icon: "M6 3h12v18l-3-2-3 2-3-2-3 2V3zM9 8h6M9 12h6" },
   { href: "/vendinha", label: "Vendinha", icon: "M3 9l1-5h16l1 5M4 9v11h16V9M9 20v-6h6v6" },
   { href: "/relatorios", label: "Relatórios", icon: "M5 21V10M12 21V4M19 21v-7" },
-  { href: "/maquininhas", label: "Ajustes", icon: "M4 6h16M4 12h16M4 18h16" },
+  { href: "/ajustes", label: "Ajustes", icon: "M4 6h16M4 12h16M4 18h16" },
 ];
 
 function Icon({ d }: { d: string }) {
@@ -27,10 +28,19 @@ export function Nav({ userName }: { userName: string }) {
 
   return (
     <>
+      {/* Celular: barra de topo com o botão de tema */}
+      <header className="flex items-center justify-between px-4 pt-3 md:hidden">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand text-sm font-semibold text-on-brand">P</div>
+          <span className="text-sm font-semibold tracking-tight">Pop Dashboard</span>
+        </div>
+        <ThemeToggle />
+      </header>
+
       {/* Desktop / tablet: barra lateral */}
       <aside className="fixed inset-y-0 left-0 hidden w-60 flex-col border-r border-line bg-surface p-4 md:flex">
         <div className="mb-6 flex items-center gap-3 px-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand text-sm font-semibold text-white">P</div>
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand text-sm font-semibold text-on-brand">P</div>
           <span className="font-semibold tracking-tight">Pop Dashboard</span>
         </div>
         <nav className="flex flex-1 flex-col gap-1">
@@ -39,7 +49,7 @@ export function Nav({ userName }: { userName: string }) {
               key={i.href}
               href={i.href}
               className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
-                active(i.href) ? "bg-brand text-white" : "text-muted hover:bg-brand-soft hover:text-ink"
+                active(i.href) ? "bg-brand text-on-brand" : "text-muted hover:bg-brand-soft hover:text-ink"
               }`}
             >
               <Icon d={i.icon} />
@@ -48,7 +58,8 @@ export function Nav({ userName }: { userName: string }) {
           ))}
         </nav>
         <div className="border-t border-line pt-3">
-          <p className="truncate px-2 text-sm font-medium">{userName}</p>
+          <ThemeToggle variant="row" />
+          <p className="mt-2 truncate px-2 text-sm font-medium">{userName}</p>
           <form action={logout}>
             <button className="mt-1 w-full cursor-pointer rounded-lg px-2 py-1.5 text-left text-sm text-muted hover:bg-brand-soft">
               Sair

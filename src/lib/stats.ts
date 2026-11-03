@@ -49,7 +49,6 @@ export type Summary = {
   netPerTrip: number | null;
   avgDailyProfit: number | null;
   days: DayRow[];
-  byMethod: { method: string; gross: number; fee: number; net: number }[];
   byPlatform: { platform: string; gross: number; trips: number }[];
   byCategory: { scope: string; category: string; amount: number }[];
 };
@@ -71,22 +70,14 @@ export async function getSummary(userId: string, from: string, to: string): Prom
       { date, rideGross: 0, rideNet: 0, saleGross: 0, saleNet: 0, cogs: 0, carExpenses: 0, storeExpenses: 0, km: 0, hours: 0, trips: 0, profit: 0 },
     ]),
   );
-  const methods = new Map<string, { gross: number; fee: number; net: number }>();
   const platforms = new Map<string, { gross: number; trips: number }>();
   const cats = new Map<string, number>();
-
-  const addMethod = (m: string, gross: number, fee: number, net: number) => {
-    const cur = methods.get(m) ?? { gross: 0, fee: 0, net: 0 };
-    cur.gross += gross; cur.fee += fee; cur.net += net;
-    methods.set(m, cur);
-  };
 
   let rideFee = 0, saleFee = 0, trips = 0;
   for (const e of earnings) {
     const d = dayMap.get(e.date)!;
     d.rideGross += e.gross; d.rideNet += e.net; d.trips += e.trips;
     rideFee += e.fee; trips += e.trips;
-    addMethod(e.method, e.gross, e.fee, e.net);
     const p = platforms.get(e.platform) ?? { gross: 0, trips: 0 };
     p.gross += e.gross; p.trips += e.trips;
     platforms.set(e.platform, p);
@@ -95,7 +86,6 @@ export async function getSummary(userId: string, from: string, to: string): Prom
     const d = dayMap.get(s.date)!;
     d.saleGross += s.gross; d.saleNet += s.net; d.cogs += s.cogs;
     saleFee += s.fee;
-    addMethod(s.method, s.gross, s.fee, s.net);
   }
   for (const x of expenses) {
     const d = dayMap.get(x.date)!;
@@ -143,7 +133,6 @@ export async function getSummary(userId: string, from: string, to: string): Prom
     netPerTrip: trips > 0 ? div(rideNet, trips) : null,
     avgDailyProfit: activeDays > 0 ? Math.round(totalProfit / activeDays) : null,
     days,
-    byMethod: [...methods.entries()].map(([method, v]) => ({ method, ...v })).sort((a, b) => b.gross - a.gross),
     byPlatform: [...platforms.entries()].map(([platform, v]) => ({ platform, ...v })).sort((a, b) => b.gross - a.gross),
     byCategory: [...cats.entries()]
       .map(([k, amount]) => {

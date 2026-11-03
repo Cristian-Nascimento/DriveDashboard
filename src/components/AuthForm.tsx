@@ -11,7 +11,7 @@ export function AuthForm({ mode, canRegister }: { mode: "login" | "register"; ca
     <div className="flex min-h-dvh items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand text-lg font-semibold text-white">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand text-lg font-semibold text-on-brand">
             P
           </div>
           <h1 className="text-xl font-semibold tracking-tight">Pop Dashboard</h1>

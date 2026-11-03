@@ -104,7 +104,7 @@ export function MonthPicker({ value, current, basePath, param, suffix = "", extr
                   onClick={() => go(year, m)}
                   aria-pressed={active}
                   className={`cursor-pointer rounded-xl px-2 py-2 text-sm font-medium transition ${
-                    active ? "bg-brand text-white" : isCurrent ? "bg-brand-soft text-ink ring-1 ring-inset ring-line hover:bg-line/60" : "text-ink hover:bg-brand-soft"
+                    active ? "bg-brand text-on-brand" : isCurrent ? "bg-brand-soft text-ink ring-1 ring-inset ring-line hover:bg-line/60" : "text-ink hover:bg-brand-soft"
                   }`}
                 >
                   {label}

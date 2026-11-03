@@ -45,7 +45,7 @@ export default async function Relatorios({ searchParams }: { searchParams: Promi
 
       <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Lucro líquido" value={brl(s.totalProfit)} tone={s.totalProfit >= 0 ? "pos" : "neg"} />
-        <Stat label="Recebido (bruto)" value={brl(s.totalGross)} hint={`Taxas: ${brl(s.totalFees)}`} />
+        <Stat label="Recebido" value={brl(s.totalGross)} hint={s.totalFees > 0 ? `Taxas antigas: ${brl(s.totalFees)}` : undefined} />
         <Stat label="Km / horas" value={`${num(s.km, 0)} km`} hint={`${num(s.hours, 1)} h · ${s.trips} corridas`} />
         <Stat label="Lucro / km" value={s.profitPerKm === null ? "–" : brl(s.profitPerKm)} hint={s.profitPerHour === null ? undefined : `${brl(s.profitPerHour)} por hora`} />
       </div>
@@ -130,8 +130,8 @@ export default async function Relatorios({ searchParams }: { searchParams: Promi
 
       <Section title="Como o lucro é calculado">
         <ul className="list-disc space-y-1 pl-5 text-sm text-muted">
-          <li>Corridas: valor recebido − taxa da maquininha − despesas do carro.</li>
-          <li>Vendinha: vendas − taxa da maquininha − custo das mercadorias − despesas da vendinha.</li>
+          <li>Corridas: valor que entrou − despesas do carro.</li>
+          <li>Vendinha: vendas − custo das mercadorias − despesas da vendinha.</li>
           <li>Despesas mensais (seguro, IPVA, parcela) entram no dia em que forem lançadas; lance-as no dia do pagamento.</li>
         </ul>
       </Section>

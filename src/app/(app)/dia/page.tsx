@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { requireUser } from "@/lib/session";
 import { addDays, isValidDate, labelDate, todayStr } from "@/lib/dates";
 import { brl, num } from "@/lib/format";
-import { METHODS, PLATFORMS } from "@/lib/constants";
+import { PLATFORMS } from "@/lib/constants";
 import { getSummary } from "@/lib/stats";
 import { deleteEarning, deleteExpense, deleteSale } from "@/app/actions/data";
 import { Empty, PageHeader, Section, Stat } from "@/components/ui";
@@ -35,17 +35,15 @@ export default async function DiaPage({ searchParams }: { searchParams: Promise<
   const sp = await searchParams;
   const date = isValidDate(sp.date) ? sp.date : todayStr();
 
-  const [summary, workDay, earnings, sales, expenses, machines, products] = await Promise.all([
+  const [summary, workDay, earnings, sales, expenses, products] = await Promise.all([
     getSummary(user.id, date, date),
     db.workDay.findUnique({ where: { userId_date: { userId: user.id, date } } }),
-    db.earning.findMany({ where: { userId: user.id, date }, include: { machine: true }, orderBy: { createdAt: "asc" } }),
-    db.sale.findMany({ where: { userId: user.id, date }, include: { items: true, machine: true }, orderBy: { createdAt: "asc" } }),
+    db.earning.findMany({ where: { userId: user.id, date }, orderBy: { createdAt: "asc" } }),
+    db.sale.findMany({ where: { userId: user.id, date }, include: { items: true }, orderBy: { createdAt: "asc" } }),
     db.expense.findMany({ where: { userId: user.id, date }, orderBy: { createdAt: "asc" } }),
-    db.machine.findMany({ where: { userId: user.id, active: true }, orderBy: { name: "asc" } }),
     db.product.findMany({ where: { userId: user.id, active: true }, orderBy: { name: "asc" } }),
   ]);
 
-  const machineOpts = machines.map((m) => ({ id: m.id, name: m.name }));
   const isToday = date === todayStr();
   const hasEntries = earnings.length + sales.length + expenses.length > 0;
 
@@ -59,8 +57,8 @@ export default async function DiaPage({ searchParams }: { searchParams: Promise<
       {sp.ok && sp.ok !== "vazio" && <p className="mb-4 rounded-xl bg-pos/10 px-4 py-2.5 text-sm text-pos">Salvo.</p>}
 
       <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Stat label="Recebido (bruto)" value={brl(summary.totalGross)} />
-        <Stat label="Taxas das maquininhas" value={brl(summary.totalFees)} />
+        <Stat label="Corridas" value={brl(summary.rideGross)} />
+        <Stat label="Vendinha" value={brl(summary.saleGross)} />
         <Stat label="Despesas + custo vendinha" value={brl(summary.carExpenses + summary.storeExpenses + summary.cogs)} />
         <Stat label="Lucro do dia" value={brl(summary.totalProfit)} tone={summary.totalProfit >= 0 ? "pos" : "neg"} />
       </div>
@@ -75,7 +73,6 @@ export default async function DiaPage({ searchParams }: { searchParams: Promise<
       <DayForm
         key={`${date}-${sp.s ?? ""}`}
         date={date}
-        machines={machineOpts}
         products={products.map((p) => ({ id: p.id, name: p.name, price: p.price, stock: p.stock }))}
         workDay={{
           km: workDay?.km ? num(workDay.km, 1).replace(/\./g, "") : "",
@@ -100,11 +97,7 @@ export default async function DiaPage({ searchParams }: { searchParams: Promise<
                           {PLATFORMS[e.platform as keyof typeof PLATFORMS]}
                           {e.trips > 0 && <span className="text-muted"> · {e.trips} corr.</span>}
                         </p>
-                        <p className="truncate text-xs text-muted">
-                          {METHODS[e.method as keyof typeof METHODS]}
-                          {e.machine ? ` · ${e.machine.name}` : ""}
-                          {e.fee > 0 && ` · taxa ${brl(e.fee)} · líquido ${brl(e.net)}`}
-                        </p>
+                        {e.fee > 0 && <p className="truncate text-xs text-muted">lançamento antigo · taxa {brl(e.fee)} · líquido {brl(e.net)}</p>}
                       </div>
                       <div className="flex shrink-0 flex-wrap items-center justify-end gap-x-2">
                         <span className="text-sm font-semibold">{brl(e.gross)}</span>
@@ -126,8 +119,8 @@ export default async function DiaPage({ searchParams }: { searchParams: Promise<
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium">{s.items.map((i) => `${i.qty}× ${i.name}`).join(", ")}</p>
                         <p className="truncate text-xs text-muted">
-                          {METHODS[s.method as keyof typeof METHODS]}{s.machine ? ` · ${s.machine.name}` : ""}
-                          {s.fee > 0 && ` · taxa ${brl(s.fee)}`} · lucro {brl(s.net - s.cogs)}
+                          lucro {brl(s.net - s.cogs)}
+                          {s.fee > 0 && ` · taxa antiga ${brl(s.fee)}`}
                         </p>
                       </div>
                       <div className="flex shrink-0 flex-wrap items-center justify-end gap-x-2">

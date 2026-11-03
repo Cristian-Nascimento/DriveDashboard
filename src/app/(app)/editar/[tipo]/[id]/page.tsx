@@ -6,7 +6,6 @@ import { centsToInput } from "@/lib/format";
 import { CAR_CATEGORIES, PLATFORMS, STORE_CATEGORIES } from "@/lib/constants";
 import { updateEarning, updateExpense } from "@/app/actions/data";
 import { PageHeader, Section } from "@/components/ui";
-import { PayFields } from "@/components/PayFields";
 import { SaleForm } from "@/components/SaleForm";
 
 export const metadata = { title: "Editar lançamento · Pop Dashboard" };
@@ -14,8 +13,6 @@ export const metadata = { title: "Editar lançamento · Pop Dashboard" };
 export default async function EditarPage({ params }: { params: Promise<{ tipo: string; id: string }> }) {
   const user = await requireUser();
   const { tipo, id } = await params;
-  const machines = await db.machine.findMany({ where: { userId: user.id, active: true }, orderBy: { name: "asc" } });
-  const machineOpts = machines.map((m) => ({ id: m.id, name: m.name }));
 
   let date = "";
   let body: React.ReactNode;
@@ -37,14 +34,8 @@ export default async function EditarPage({ params }: { params: Promise<{ tipo: s
             {Object.entries(PLATFORMS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
         </div>
-        <PayFields
-          methods={["APP", "CASH", "PIX", "DEBIT", "CREDIT", "CREDIT_INST"]}
-          machines={machineOpts}
-          defaultMethod={e.method as "APP"}
-          defaultMachineId={e.machineId}
-        />
         <div>
-          <label className="label">Valor recebido (R$)</label>
+          <label className="label">Valor (R$)</label>
           <input name="gross" className="input" inputMode="decimal" defaultValue={centsToInput(e.gross)} required />
         </div>
         <div>
@@ -103,11 +94,8 @@ export default async function EditarPage({ params }: { params: Promise<{ tipo: s
       <SaleForm
         date={s.date}
         products={products.map((p) => ({ id: p.id, name: p.name, price: p.price, stock: p.stock }))}
-        machines={machineOpts}
         sale={{
           id: s.id,
-          method: s.method,
-          machineId: s.machineId,
           items: s.items.map((i) => ({ productId: i.productId, name: i.name, qty: i.qty, unitPrice: i.unitPrice })),
         }}
       />

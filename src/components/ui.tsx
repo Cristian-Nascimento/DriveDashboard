@@ -58,12 +58,12 @@ export function Empty({ children }: { children: React.ReactNode }) {
 
 export function Tabs({ items }: { items: { href: string; label: string; active: boolean }[] }) {
   return (
-    <div className="flex w-full rounded-xl border border-line bg-white p-1 md:inline-flex md:w-auto">
+    <div className="flex w-full rounded-xl border border-line bg-surface p-1 md:inline-flex md:w-auto">
       {items.map((i) => (
         <Link
           key={i.href}
           href={i.href}
-          className={`flex-1 rounded-lg px-3.5 py-1.5 text-center text-sm font-medium transition md:flex-none ${i.active ? "bg-brand text-white" : "text-muted hover:text-ink"}`}
+          className={`flex-1 rounded-lg px-3.5 py-1.5 text-center text-sm font-medium transition md:flex-none ${i.active ? "bg-brand text-on-brand" : "text-muted hover:text-ink"}`}
         >
           {i.label}
         </Link>

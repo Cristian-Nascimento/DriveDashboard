@@ -15,13 +15,13 @@ export function BillForm({ today }: { today: string }) {
   return (
     <form action={createBill} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <div className="sm:col-span-2 lg:col-span-3">
-        <div className="inline-flex rounded-xl border border-line bg-white p-1">
+        <div className="inline-flex rounded-xl border border-line bg-surface p-1">
           {(["PARCELADA", "FIXA"] as const).map((m) => (
             <button
               key={m}
               type="button"
               onClick={() => setMode(m)}
-              className={`cursor-pointer rounded-lg px-3.5 py-1.5 text-sm font-medium transition ${mode === m ? "bg-brand text-white" : "text-muted"}`}
+              className={`cursor-pointer rounded-lg px-3.5 py-1.5 text-sm font-medium transition ${mode === m ? "bg-brand text-on-brand" : "text-muted"}`}
             >
               {m === "PARCELADA" ? "Parcelada (tem fim)" : "Fixa todo mês (sem fim)"}
             </button>

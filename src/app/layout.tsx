@@ -12,9 +12,16 @@ export const viewport: Viewport = {
   themeColor: "#2f3a4a",
 };
 
+// Define o tema antes da primeira pintura (evita piscar claro->escuro):
+// usa a escolha salva e, se não houver, a preferência do aparelho.
+const themeScript = `try{var t=localStorage.getItem("pd_theme");if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.dataset.theme=t}catch(e){}`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="min-h-dvh">{children}</body>
     </html>
   );

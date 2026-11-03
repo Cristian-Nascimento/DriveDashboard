@@ -18,11 +18,11 @@ Na primeira vez, abra `/cadastro` e crie a conta. Depois coloque `ALLOW_REGISTER
 
 ## Fluxo de uso
 
-1. **Ajustes**: informe as taxas (%) da maquininha (débito, crédito à vista, parcelado, Pix) e, se quiser, altere a senha.
-2. **Contas**: cadastre as despesas mensais (veja abaixo). Uma vez só.
-3. **Lançar** (todo fim de dia): fechamento (km e horas), ganhos, vendas da vendinha e despesas. Todo lançamento pode ser editado ou excluído.
-4. **Painel**: lucro e indicadores de hoje, da semana e do mês, mais aviso de contas vencidas ou a vencer.
-5. **Relatórios**: semanal e mensal, com CSV para o Excel.
+1. **Contas**: cadastre as despesas mensais (veja abaixo). Uma vez só.
+2. **Lançar** (todo fim de dia, ou de qualquer data passada): fechamento (km e horas), o que entrou, vendas da vendinha e despesas, com um único botão Salvar. Campos em branco são ignorados. Todo lançamento pode ser editado ou excluído.
+3. **Painel**: lucro e indicadores de hoje, da semana e do mês, mais aviso de contas vencidas ou a vencer.
+4. **Relatórios**: semanal e mensal, com CSV para o Excel.
+5. **Ajustes**: tema claro ou escuro e troca de senha.
 
 ## Contas mensais (parceladas e fixas)
 
@@ -34,9 +34,9 @@ Em **Contas** você informa: nome, tipo de despesa, valor, vencimento, a parcela
 
 ## Como os números são calculados
 
-- Taxa = valor bruto × % da maquininha escolhida. Fica gravada no lançamento; mudar a taxa depois não altera o histórico.
-- Lucro das corridas = ganho líquido − despesas do carro (inclui contas pagas do tipo “carro”).
-- Lucro da vendinha = vendas líquidas − custo das mercadorias − despesas da vendinha.
+- Não há maquininha, taxa nem forma de recebimento: vale o valor que entrou.
+- Lucro das corridas = valor das corridas − despesas do carro (inclui contas pagas do tipo “carro”).
+- Lucro da vendinha = vendas − custo das mercadorias − despesas da vendinha.
 - Ganho/km, lucro/km, custo/km e por hora usam o km e as horas do fechamento do dia.
 
 ## Senha
@@ -55,4 +55,4 @@ Next.js 15 (App Router, Server Actions) · TypeScript · Tailwind v4 · Prisma �
 
 ## Fora do escopo
 
-Integração automática com maquininhas e cobrança de assinatura.
+Integração automática com maquininhas, taxas por forma de pagamento e cobrança de assinatura.

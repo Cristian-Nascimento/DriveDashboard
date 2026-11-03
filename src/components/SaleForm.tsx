@@ -1,37 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import { addSale, updateSale } from "@/app/actions/data";
-import { PayFields } from "./PayFields";
-import { METHODS, SALE_METHODS } from "@/lib/constants";
+import { updateSale } from "@/app/actions/data";
 import { brl, centsToInput, parseMoney } from "@/lib/format";
 
+// Usado só para editar uma venda já lançada (o lançamento novo é feito em DayForm).
+
 type Product = { id: string; name: string; price: number; stock: number };
-type Machine = { id: string; name: string };
 type Row = { key: number; productId: string; name: string; qty: string; price: string };
 export type EditableSale = {
   id: string;
-  method: string;
-  machineId: string | null;
   items: { productId: string | null; name: string; qty: number; unitPrice: number }[];
 };
 
 let seq = 1;
 const emptyRow = (): Row => ({ key: seq++, productId: "", name: "", qty: "1", price: "" });
 
-export function SaleForm({
-  date,
-  products,
-  machines,
-  sale,
-}: {
-  date: string;
-  products: Product[];
-  machines: Machine[];
-  sale?: EditableSale;
-}) {
+export function SaleForm({ date, products, sale }: { date: string; products: Product[]; sale: EditableSale }) {
   const [rows, setRows] = useState<Row[]>(() =>
-    sale
+    sale.items.length
       ? sale.items.map((i) => ({
           key: seq++,
           productId: i.productId ?? "",
@@ -61,24 +48,18 @@ export function SaleForm({
   const total = items.reduce((s, i) => s + i.qty * i.unitPrice, 0);
 
   return (
-    <form action={sale ? updateSale : addSale} className="space-y-3">
-      {sale ? (
-        <>
-          <input type="hidden" name="id" value={sale.id} />
-          <div className="max-w-xs">
-            <label className="label">Data</label>
-            <input type="date" name="date" className="input" defaultValue={date} required />
-          </div>
-        </>
-      ) : (
-        <input type="hidden" name="date" value={date} />
-      )}
+    <form action={updateSale} className="space-y-3">
+      <input type="hidden" name="id" value={sale.id} />
+      <div className="max-w-xs">
+        <label className="label">Data</label>
+        <input type="date" name="date" className="input" defaultValue={date} required />
+      </div>
       <input type="hidden" name="items" value={JSON.stringify(items)} />
 
       <div className="space-y-2">
         {rows.map((r) => (
           <div key={r.key} className="grid grid-cols-[minmax(0,1fr)_3.5rem_5.5rem_2rem] items-end gap-2 sm:grid-cols-[minmax(0,1fr)_4rem_6rem_2rem]">
-            <div>
+            <div className="min-w-0">
               <label className="label">Produto</label>
               <select className="input" value={r.productId} onChange={(e) => pick(r.key, e.target.value)}>
                 <option value="">Item avulso…</option>
@@ -87,19 +68,14 @@ export function SaleForm({
                 ))}
               </select>
               {!r.productId && (
-                <input
-                  className="input mt-1"
-                  placeholder="Nome do item"
-                  value={r.name}
-                  onChange={(e) => update(r.key, { name: e.target.value })}
-                />
+                <input className="input mt-1" placeholder="Nome do item" value={r.name} onChange={(e) => update(r.key, { name: e.target.value })} />
               )}
             </div>
-            <div>
+            <div className="min-w-0">
               <label className="label">Qtd</label>
               <input className="input" inputMode="numeric" value={r.qty} onChange={(e) => update(r.key, { qty: e.target.value })} />
             </div>
-            <div>
+            <div className="min-w-0">
               <label className="label">Preço un.</label>
               <input className="input" inputMode="decimal" placeholder="0,00" value={r.price} onChange={(e) => update(r.key, { price: e.target.value })} />
             </div>
@@ -119,21 +95,12 @@ export function SaleForm({
         + Adicionar item
       </button>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <PayFields
-          methods={[...SALE_METHODS]}
-          machines={machines}
-          defaultMethod={(sale?.method as keyof typeof METHODS) ?? "PIX"}
-          defaultMachineId={sale ? sale.machineId : undefined}
-        />
-      </div>
-
       <div className="flex items-center justify-between rounded-xl bg-brand-soft px-4 py-3">
         <span className="text-sm text-muted">Total da venda</span>
         <span className="text-lg font-semibold">{brl(total)}</span>
       </div>
 
-      <button className="btn w-full sm:w-auto" disabled={total <= 0}>{sale ? "Salvar alterações" : "Registrar venda"}</button>
+      <button className="btn w-full sm:w-auto" disabled={total <= 0}>Salvar alterações</button>
     </form>
   );
 }

@@ -82,12 +82,11 @@ export async function register(_: AuthState, form: FormData): Promise<AuthState>
       name,
       email,
       passwordHash: await bcrypt.hash(password, 11),
-      machines: { create: { name: "Moderninha Smart 2", debitFee: 0, creditFee: 0, creditInstFee: 0, pixFee: 0 } },
     },
   });
 
   await createSession(user.id);
-  redirect("/maquininhas?novo=1");
+  redirect("/");
 }
 
 /* ---------- Recuperação e troca de senha ---------- */

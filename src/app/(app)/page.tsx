@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { installmentLabel } from "@/lib/bills";
 import { addDays, labelDate, labelMonth, monthEnd, monthStart, todayStr, weekStart } from "@/lib/dates";
 import { brl, num, pct } from "@/lib/format";
-import { METHODS, PLATFORMS } from "@/lib/constants";
+import { PLATFORMS } from "@/lib/constants";
 import { getSummary } from "@/lib/stats";
 import { DailyChart } from "@/components/DailyChart";
 import { MonthPicker } from "@/components/MonthPicker";
@@ -90,9 +90,13 @@ export default async function Painel({ searchParams }: { searchParams: Promise<{
 
       <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Lucro líquido" value={brl(s.totalProfit)} tone={s.totalProfit >= 0 ? "pos" : "neg"} hint={s.avgDailyProfit !== null ? `${brl(s.avgDailyProfit)} por dia ativo` : undefined} />
-        <Stat label="Recebido (bruto)" value={brl(s.totalGross)} hint={`Corridas ${brl(s.rideGross)} · Vendinha ${brl(s.saleGross)}`} />
-        <Stat label="Taxas de maquininha" value={brl(s.totalFees)} hint={s.totalGross ? `${pct(s.totalFees, s.totalGross)} do bruto` : undefined} />
-        <Stat label="Despesas do carro" value={brl(s.carExpenses)} hint={s.rideNet ? `${pct(s.carExpenses, s.rideNet)} do ganho líquido` : undefined} />
+        <Stat
+          label="Recebido"
+          value={brl(s.totalGross)}
+          hint={s.totalFees > 0 ? `Corridas ${brl(s.rideGross)} · Vendinha ${brl(s.saleGross)} · taxas antigas −${brl(s.totalFees)}` : `Corridas ${brl(s.rideGross)} · Vendinha ${brl(s.saleGross)}`}
+        />
+        <Stat label="Despesas do carro" value={brl(s.carExpenses)} hint={s.rideNet ? `${pct(s.carExpenses, s.rideNet)} do ganho das corridas` : undefined} />
+        <Stat label="Lucro da vendinha" value={brl(s.storeProfit)} tone={s.storeProfit >= 0 ? "pos" : "neg"} />
       </div>
 
       <Section title="Indicadores das corridas" aside={<span className="text-xs text-muted">{num(s.km, 0)} km · {num(s.hours, 1)} h · {s.trips} corridas</span>}>
@@ -113,7 +117,7 @@ export default async function Painel({ searchParams }: { searchParams: Promise<{
         </div>
         {s.km === 0 && <p className="mt-3 text-xs text-muted">Informe km e horas no fechamento do dia para ver os indicadores por km e por hora.</p>}
         <p className="mt-3 text-xs text-muted">
-          Lucro das corridas: {brl(s.rideProfit)} (ganho líquido {brl(s.rideNet)} − despesas do carro {brl(s.carExpenses)}).
+          Lucro das corridas: {brl(s.rideProfit)} (ganho {brl(s.rideNet)} − despesas do carro {brl(s.carExpenses)}).
         </p>
       </Section>
 
@@ -127,7 +131,7 @@ export default async function Painel({ searchParams }: { searchParams: Promise<{
         <Section title="Vendinha">
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-xl bg-brand-soft/60 p-3">
-              <p className="text-xs text-muted">Vendas (bruto)</p>
+              <p className="text-xs text-muted">Vendas</p>
               <p className="text-lg font-semibold">{brl(s.saleGross)}</p>
             </div>
             <div className="rounded-xl bg-brand-soft/60 p-3">
@@ -136,29 +140,8 @@ export default async function Painel({ searchParams }: { searchParams: Promise<{
             </div>
           </div>
           <p className="mt-3 text-xs text-muted">
-            Líquido das taxas {brl(s.saleNet)} − custo das mercadorias {brl(s.cogs)} − despesas da vendinha {brl(s.storeExpenses)}.
+            Vendas {brl(s.saleNet)} − custo das mercadorias {brl(s.cogs)} − despesas da vendinha {brl(s.storeExpenses)}.
           </p>
-        </Section>
-
-        <Section title="Por forma de recebimento">
-          {s.byMethod.length === 0 ? (
-            <Empty>Sem recebimentos no período.</Empty>
-          ) : (
-            <ul className="space-y-3">
-              {s.byMethod.map((m) => (
-                <li key={m.method}>
-                  <div className="mb-1 flex justify-between text-sm">
-                    <span>{METHODS[m.method as keyof typeof METHODS]}</span>
-                    <span className="font-medium">{brl(m.gross)} <span className="text-muted">({pct(m.gross, s.totalGross)})</span></span>
-                  </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-brand-soft">
-                    <div className="h-full rounded-full bg-brand" style={{ width: `${s.totalGross ? (m.gross / s.totalGross) * 100 : 0}%` }} />
-                  </div>
-                  {m.fee > 0 && <p className="mt-0.5 text-xs text-muted">taxa {brl(m.fee)} · líquido {brl(m.net)}</p>}
-                </li>
-              ))}
-            </ul>
-          )}
         </Section>
 
         <Section title="Por plataforma">

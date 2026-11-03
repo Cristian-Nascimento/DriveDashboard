@@ -1,0 +1,9 @@
+node_modules
+.next
+.git
+.env
+.env.*
+prisma/*.db
+README.md
+DEPLOY-GCP.md
+.claude

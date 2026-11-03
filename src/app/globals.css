@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --color-canvas: #f6f5f3;
+  --color-surface: #ffffff;
+  --color-line: #e7e5e1;
+  --color-ink: #1f2124;
+  --color-muted: #6b6f76;
+  --color-brand: #2f3a4a;
+  --color-brand-soft: #eceff3;
+  --color-pos: #2f7d5b;
+  --color-neg: #b4443a;
+  --color-warn: #b7791f;
+}
+
+html, body { background: var(--color-canvas); color: var(--color-ink); }
+body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+
+@layer components {
+  .card { @apply rounded-2xl border border-line bg-surface p-4 shadow-[0_1px_2px_rgba(20,20,20,0.04)] sm:p-5; }
+  .label { @apply mb-1 block text-xs font-medium text-muted; }
+  .input { @apply w-full rounded-xl border border-line bg-white px-3 py-2.5 text-base outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/15 sm:text-sm; }
+  .btn { @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand/90 active:scale-[0.99] disabled:opacity-50; }
+  .btn-ghost { @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-medium text-ink transition hover:bg-brand-soft; }
+  .btn-danger { @apply cursor-pointer rounded-lg px-2 py-1 text-xs font-medium text-neg transition hover:bg-neg/10; }
+  .th { @apply px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-muted; }
+  .td { @apply px-3 py-2.5 text-sm; }
+}

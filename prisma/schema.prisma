@@ -1,0 +1,183 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x", "rhel-openssl-3.0.x"]
+}
+
+// DATABASE_URL: conexão com pool (app). DIRECT_URL: conexão direta (migrações).
+// Em Postgres local/Cloud SQL, as duas podem ser a mesma URL.
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// Valores monetários em centavos (Int). Datas como "YYYY-MM-DD" (String)
+// para evitar problemas de fuso horário.
+
+model User {
+  id           String            @id @default(cuid())
+  name         String
+  email        String            @unique
+  passwordHash String
+  createdAt    DateTime          @default(now())
+  machines     Machine[]
+  workDays     WorkDay[]
+  earnings     Earning[]
+  products     Product[]
+  sales        Sale[]
+  expenses     Expense[]
+  bills        Bill[]
+  installments BillInstallment[]
+  resets       PasswordReset[]
+}
+
+model Machine {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  debitFee      Float     @default(0) // % sobre o valor
+  creditFee     Float     @default(0)
+  creditInstFee Float     @default(0)
+  pixFee        Float     @default(0)
+  active        Boolean   @default(true)
+  earnings      Earning[]
+  sales         Sale[]
+}
+
+// Fechamento do dia: km rodados, horas e total de corridas
+model WorkDay {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date   String
+  km     Float  @default(0)
+  hours  Float  @default(0)
+  note   String @default("")
+
+  @@unique([userId, date])
+}
+
+// Ganho de corridas (uma linha por plataforma/forma de recebimento)
+model Earning {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      String
+  platform  String // UBER | NINETY_NINE | INDRIVE | PARTICULAR | OUTRO
+  method    String // APP | CASH | PIX | DEBIT | CREDIT | CREDIT_INST
+  machineId String?
+  machine   Machine? @relation(fields: [machineId], references: [id], onDelete: SetNull)
+  trips     Int      @default(0)
+  gross     Int
+  fee       Int      @default(0)
+  net       Int
+  note      String   @default("")
+  createdAt DateTime @default(now())
+
+  @@index([userId, date])
+}
+
+model Product {
+  id       String     @id @default(cuid())
+  userId   String
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name     String
+  category String     @default("")
+  cost     Int        @default(0)
+  price    Int        @default(0)
+  stock    Int        @default(0)
+  active   Boolean    @default(true)
+  items    SaleItem[]
+}
+
+model Sale {
+  id        String     @id @default(cuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      String
+  method    String
+  machineId String?
+  machine   Machine?   @relation(fields: [machineId], references: [id], onDelete: SetNull)
+  gross     Int
+  fee       Int        @default(0)
+  net       Int
+  cogs      Int        @default(0) // custo das mercadorias vendidas
+  note      String     @default("")
+  createdAt DateTime   @default(now())
+  items     SaleItem[]
+
+  @@index([userId, date])
+}
+
+model SaleItem {
+  id        String   @id @default(cuid())
+  saleId    String
+  sale      Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  name      String
+  qty       Int
+  unitPrice Int
+  unitCost  Int
+}
+
+model Expense {
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date        String
+  scope       String // CAR | STORE
+  category    String
+  description String           @default("")
+  amount      Int
+  installment BillInstallment?
+  createdAt   DateTime         @default(now())
+
+  @@index([userId, date])
+}
+
+// Conta mensal: parcelada (totalInstallments definido) ou fixa sem fim (null)
+model Bill {
+  id                String            @id @default(cuid())
+  userId            String
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name              String
+  category          String
+  scope             String            @default("CAR") // CAR | STORE
+  amount            Int
+  totalInstallments Int? // null = conta fixa sem fim
+  startNumber       Int               @default(1)
+  anchorDate        String // vencimento da primeira parcela cadastrada
+  active            Boolean           @default(true)
+  createdAt         DateTime          @default(now())
+  installments      BillInstallment[]
+}
+
+model BillInstallment {
+  id         String   @id @default(cuid())
+  billId     String
+  bill       Bill     @relation(fields: [billId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  number     Int
+  dueDate    String
+  amount     Int
+  paidDate   String?
+  paidAmount Int?
+  expenseId  String?  @unique
+  expense    Expense? @relation(fields: [expenseId], references: [id], onDelete: SetNull)
+
+  @@unique([billId, number])
+  @@index([userId, dueDate])
+}
+
+model PasswordReset {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}

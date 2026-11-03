@@ -7,22 +7,24 @@ import { brl, num, pct } from "@/lib/format";
 import { METHODS, PLATFORMS } from "@/lib/constants";
 import { getSummary } from "@/lib/stats";
 import { DailyChart } from "@/components/DailyChart";
+import { MonthPicker } from "@/components/MonthPicker";
 import { Empty, PageHeader, Section, Stat, Tabs } from "@/components/ui";
 
 export const metadata = { title: "Painel · Pop Dashboard" };
 
 const perUnit = (v: number | null, unit: string) => (v === null ? "–" : `${brl(v)}${unit}`);
 
-export default async function Painel({ searchParams }: { searchParams: Promise<{ p?: string }> }) {
+export default async function Painel({ searchParams }: { searchParams: Promise<{ p?: string; mes?: string }> }) {
   const user = await requireUser();
-  const { p } = await searchParams;
+  const { p, mes } = await searchParams;
   const period = p === "hoje" || p === "semana" ? p : "mes";
   const today = todayStr();
+  const monthRef = mes && /^\d{4}-(0[1-9]|1[0-2])$/.test(mes) ? `${mes}-01` : today;
 
   const [from, to, subtitle] =
     period === "hoje" ? [today, today, labelDate(today)]
     : period === "semana" ? [weekStart(today), addDays(weekStart(today), 6), "Semana atual (seg–dom)"]
-    : [monthStart(today), monthEnd(today), labelMonth(today)];
+    : [monthStart(monthRef), monthEnd(monthRef), labelMonth(monthRef)];
 
   const [s, dueSoon] = await Promise.all([
     getSummary(user.id, from, to),
@@ -46,7 +48,7 @@ export default async function Painel({ searchParams }: { searchParams: Promise<{
   return (
     <>
       <PageHeader title={`Olá, ${user.name.split(" ")[0]}`} subtitle={subtitle}>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Tabs
             items={[
               { href: "/?p=hoje", label: "Hoje", active: period === "hoje" },
@@ -54,6 +56,7 @@ export default async function Painel({ searchParams }: { searchParams: Promise<{
               { href: "/", label: "Mês", active: period === "mes" },
             ]}
           />
+          <MonthPicker value={monthRef.slice(0, 7)} current={today.slice(0, 7)} basePath="/" param="mes" />
           <Link href="/dia" className="btn hidden sm:inline-flex">+ Lançar dia</Link>
         </div>
       </PageHeader>

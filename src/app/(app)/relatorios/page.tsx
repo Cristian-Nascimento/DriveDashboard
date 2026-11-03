@@ -4,6 +4,7 @@ import { addDays, addMonths, isValidDate, labelDate, labelMonth, monthEnd, month
 import { brl, num } from "@/lib/format";
 import { getSummary } from "@/lib/stats";
 import { Empty, PageHeader, Section, Stat, Tabs } from "@/components/ui";
+import { MonthPicker } from "@/components/MonthPicker";
 
 export const metadata = { title: "Relatórios · Pop Dashboard" };
 
@@ -32,6 +33,7 @@ export default async function Relatorios({ searchParams }: { searchParams: Promi
               { href: `/relatorios?tipo=mensal&ref=${ref}`, label: "Mensal", active: tipo === "mensal" },
             ]}
           />
+          <MonthPicker value={ref.slice(0, 7)} current={todayStr().slice(0, 7)} basePath="/relatorios" param="ref" suffix="-01" extra={{ tipo }} />
           <Link href={`/relatorios?tipo=${tipo}&ref=${prev}`} className="btn-ghost !px-3" aria-label="Período anterior">‹</Link>
           <Link href={`/relatorios?tipo=${tipo}&ref=${next}`} className="btn-ghost !px-3" aria-label="Próximo período">›</Link>
           <a href={`/relatorios/csv?from=${from}&to=${to}`} className="btn-ghost">Baixar planilha (CSV)</a>

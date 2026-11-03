@@ -14,7 +14,7 @@
   --color-warn: #b7791f;
 }
 
-html, body { background: var(--color-canvas); color: var(--color-ink); }
+html, body { background: var(--color-canvas); color: var(--color-ink); max-width: 100%; overflow-x: clip; }
 body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
 
 @layer components {

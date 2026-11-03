@@ -25,6 +25,8 @@ export function MonthPicker({ value, current, basePath, param, suffix = "", extr
   const [open, setOpen] = useState(false);
   const [year, setYear] = useState(() => Number(value.slice(0, 4)));
   const box = useRef<HTMLDivElement>(null);
+  // largura e deslocamento do painel, calculados ao abrir para nunca passar da tela
+  const [pos, setPos] = useState({ width: 280, left: 0 });
 
   const selYear = Number(value.slice(0, 4));
   const selMonth = Number(value.slice(5, 7)) - 1;
@@ -58,6 +60,12 @@ export function MonthPicker({ value, current, basePath, param, suffix = "", extr
         type="button"
         onClick={() => {
           setYear(selYear);
+          const r = box.current?.getBoundingClientRect();
+          if (r) {
+            const width = Math.min(280, window.innerWidth - 32);
+            const left = Math.min(Math.max(r.left, 16), window.innerWidth - 16 - width);
+            setPos({ width, left: left - r.left });
+          }
           setOpen((o) => !o);
         }}
         aria-haspopup="dialog"
@@ -76,7 +84,7 @@ export function MonthPicker({ value, current, basePath, param, suffix = "", extr
       </button>
 
       {open && (
-        <div role="dialog" aria-label="Escolher mês e ano" className="absolute right-0 z-30 mt-2 w-[17.5rem] rounded-2xl border border-line bg-surface p-3 shadow-[0_12px_32px_rgba(20,20,20,0.12)]">
+        <div role="dialog" aria-label="Escolher mês e ano" style={{ width: pos.width, left: pos.left }} className="absolute z-30 mt-2 rounded-2xl border border-line bg-surface p-3 shadow-[0_12px_32px_rgba(20,20,20,0.12)]">
           <div className="mb-2 flex items-center justify-between">
             <button type="button" onClick={() => setYear((y) => y - 1)} aria-label="Ano anterior" className="grid h-8 w-8 cursor-pointer place-items-center rounded-lg text-muted transition hover:bg-brand-soft hover:text-ink">‹</button>
             <span className="text-sm font-semibold tabular-nums">{year}</span>

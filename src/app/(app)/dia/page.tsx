@@ -5,11 +5,9 @@ import { addDays, isValidDate, labelDate, todayStr } from "@/lib/dates";
 import { brl, num } from "@/lib/format";
 import { METHODS, PLATFORMS } from "@/lib/constants";
 import { getSummary } from "@/lib/stats";
-import { addEarning, deleteEarning, deleteExpense, deleteSale, saveWorkDay } from "@/app/actions/data";
+import { deleteEarning, deleteExpense, deleteSale } from "@/app/actions/data";
 import { Empty, PageHeader, Section, Stat } from "@/components/ui";
-import { PayFields } from "@/components/PayFields";
-import { SaleForm } from "@/components/SaleForm";
-import { ExpenseForm } from "@/components/ExpenseForm";
+import { DayForm } from "@/components/DayForm";
 
 export const metadata = { title: "Lançar dia · Pop Dashboard" };
 
@@ -31,7 +29,7 @@ function EditLink({ tipo, id }: { tipo: string; id: string }) {
   );
 }
 
-export default async function DiaPage({ searchParams }: { searchParams: Promise<{ date?: string; ok?: string }> }) {
+export default async function DiaPage({ searchParams }: { searchParams: Promise<{ date?: string; ok?: string; s?: string }> }) {
   const user = await requireUser();
   const sp = await searchParams;
   const date = isValidDate(sp.date) ? sp.date : todayStr();
@@ -48,11 +46,12 @@ export default async function DiaPage({ searchParams }: { searchParams: Promise<
 
   const machineOpts = machines.map((m) => ({ id: m.id, name: m.name }));
   const isToday = date === todayStr();
+  const hasEntries = earnings.length + sales.length + expenses.length > 0;
 
   return (
     <>
       <PageHeader title="Lançar o dia" subtitle={labelDate(date)}>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Link href={`/dia?date=${addDays(date, -1)}`} className="btn-ghost !px-3" aria-label="Dia anterior">‹</Link>
           <form method="get" className="flex items-center gap-2">
             <input type="date" name="date" defaultValue={date} className="input !w-auto" aria-label="Data" />
@@ -63,7 +62,8 @@ export default async function DiaPage({ searchParams }: { searchParams: Promise<
         </div>
       </PageHeader>
 
-      {sp.ok && <p className="mb-4 rounded-xl bg-pos/10 px-4 py-2.5 text-sm text-pos">Salvo.</p>}
+      {sp.ok === "vazio" && <p className="mb-4 rounded-xl bg-brand-soft px-4 py-2.5 text-sm text-muted">Nada novo para salvar.</p>}
+      {sp.ok && sp.ok !== "vazio" && <p className="mb-4 rounded-xl bg-pos/10 px-4 py-2.5 text-sm text-pos">Salvo.</p>}
 
       <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat label="Recebido (bruto)" value={brl(summary.totalGross)} />
@@ -72,136 +72,104 @@ export default async function DiaPage({ searchParams }: { searchParams: Promise<
         <Stat label="Lucro do dia" value={brl(summary.totalProfit)} tone={summary.totalProfit >= 0 ? "pos" : "neg"} />
       </div>
 
-      <Section id="fechamento" title="1. Fechamento do dia">
-        <form action={saveWorkDay} className="grid gap-3 sm:grid-cols-3">
-          <input type="hidden" name="date" value={date} />
-          <div>
-            <label className="label">Km rodados</label>
-            <input name="km" className="input" inputMode="decimal" placeholder="0" defaultValue={workDay?.km ? num(workDay.km, 1).replace(/\./g, "") : ""} />
-          </div>
-          <div>
-            <label className="label">Horas online</label>
-            <input name="hours" className="input" inputMode="decimal" placeholder="0" defaultValue={workDay?.hours ? num(workDay.hours, 2).replace(/\./g, "") : ""} />
-          </div>
-          <div>
-            <label className="label">Observação</label>
-            <input name="note" className="input" maxLength={300} defaultValue={workDay?.note ?? ""} />
-          </div>
-          <div className="sm:col-span-3">
-            <button className="btn w-full sm:w-auto">Salvar fechamento</button>
-          </div>
-        </form>
-      </Section>
+      {products.length === 0 && (
+        <p className="mb-3 text-sm text-muted">
+          Dica: cadastre seus produtos em <Link href="/vendinha" className="font-medium text-brand underline">Vendinha</Link> para controlar estoque e lucro. Você também pode lançar itens avulsos.
+        </p>
+      )}
 
-      <Section id="ganhos" title="2. Ganhos de corridas">
-        <form action={addEarning} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <input type="hidden" name="date" value={date} />
-          <div>
-            <label className="label">Plataforma</label>
-            <select name="platform" className="input">
-              {Object.entries(PLATFORMS).map(([k, v]) => (
-                <option key={k} value={k}>{v}</option>
-              ))}
-            </select>
-          </div>
-          <PayFields methods={["APP", "CASH", "PIX", "DEBIT", "CREDIT", "CREDIT_INST"]} machines={machineOpts} defaultMethod="APP" />
-          <div>
-            <label className="label">Valor recebido (R$)</label>
-            <input name="gross" className="input" inputMode="decimal" placeholder="0,00" required />
-          </div>
-          <div>
-            <label className="label">Nº de corridas</label>
-            <input name="trips" className="input" inputMode="numeric" placeholder="0" />
-          </div>
-          <div className="sm:col-span-2 lg:col-span-3">
-            <button className="btn w-full sm:w-auto">Adicionar ganho</button>
-          </div>
-        </form>
+      {/* a chave muda a cada salvamento (s) para limpar as linhas já lançadas */}
+      <DayForm
+        key={`${date}-${sp.s ?? ""}`}
+        date={date}
+        machines={machineOpts}
+        products={products.map((p) => ({ id: p.id, name: p.name, price: p.price, stock: p.stock }))}
+        workDay={{
+          km: workDay?.km ? num(workDay.km, 1).replace(/\./g, "") : "",
+          hours: workDay?.hours ? num(workDay.hours, 2).replace(/\./g, "") : "",
+          note: workDay?.note ?? "",
+        }}
+      />
 
-        <div className="mt-4">
-          {earnings.length === 0 ? (
-            <Empty>Nenhum ganho lançado neste dia.</Empty>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr><th className="th">Plataforma</th><th className="th">Forma</th><th className="th text-right">Bruto</th><th className="th text-right">Taxa</th><th className="th text-right">Líquido</th><th className="th" /></tr>
-                </thead>
-                <tbody className="divide-y divide-line">
+      <Section id="lancado" title="Lançado neste dia">
+        {!hasEntries ? (
+          <Empty>Nada lançado neste dia ainda.</Empty>
+        ) : (
+          <div className="space-y-5">
+            {earnings.length > 0 && (
+              <div>
+                <h3 className="mb-1 text-xs font-medium uppercase tracking-wide text-muted">Ganhos</h3>
+                <ul className="divide-y divide-line">
                   {earnings.map((e) => (
-                    <tr key={e.id}>
-                      <td className="td">{PLATFORMS[e.platform as keyof typeof PLATFORMS]}{e.trips > 0 && <span className="text-muted"> · {e.trips} corr.</span>}</td>
-                      <td className="td">{METHODS[e.method as keyof typeof METHODS]}{e.machine && <span className="block text-xs text-muted">{e.machine.name}</span>}</td>
-                      <td className="td text-right">{brl(e.gross)}</td>
-                      <td className="td text-right text-muted">{e.fee ? `− ${brl(e.fee)}` : "–"}</td>
-                      <td className="td text-right font-medium">{brl(e.net)}</td>
-                      <td className="td"><div className="flex justify-end gap-1"><EditLink tipo="ganho" id={e.id} /><DeleteBtn action={deleteEarning} id={e.id} date={date} /></div></td>
-                    </tr>
+                    <li key={e.id} className="flex items-start justify-between gap-3 py-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">
+                          {PLATFORMS[e.platform as keyof typeof PLATFORMS]}
+                          {e.trips > 0 && <span className="text-muted"> · {e.trips} corr.</span>}
+                        </p>
+                        <p className="truncate text-xs text-muted">
+                          {METHODS[e.method as keyof typeof METHODS]}
+                          {e.machine ? ` · ${e.machine.name}` : ""}
+                          {e.fee > 0 && ` · taxa ${brl(e.fee)} · líquido ${brl(e.net)}`}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 flex-wrap items-center justify-end gap-x-2">
+                        <span className="text-sm font-semibold">{brl(e.gross)}</span>
+                        <EditLink tipo="ganho" id={e.id} />
+                        <DeleteBtn action={deleteEarning} id={e.id} date={date} />
+                      </div>
+                    </li>
                   ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      </Section>
+                </ul>
+              </div>
+            )}
 
-      <Section id="vendas" title="3. Vendas da vendinha">
-        {products.length === 0 && (
-          <p className="mb-3 text-sm text-muted">
-            Dica: cadastre seus produtos em <Link href="/vendinha" className="font-medium text-brand underline">Vendinha</Link> para controlar estoque e lucro. Você também pode lançar itens avulsos.
-          </p>
+            {sales.length > 0 && (
+              <div>
+                <h3 className="mb-1 text-xs font-medium uppercase tracking-wide text-muted">Vendas</h3>
+                <ul className="divide-y divide-line">
+                  {sales.map((s) => (
+                    <li key={s.id} className="flex items-start justify-between gap-3 py-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">{s.items.map((i) => `${i.qty}× ${i.name}`).join(", ")}</p>
+                        <p className="truncate text-xs text-muted">
+                          {METHODS[s.method as keyof typeof METHODS]}{s.machine ? ` · ${s.machine.name}` : ""}
+                          {s.fee > 0 && ` · taxa ${brl(s.fee)}`} · lucro {brl(s.net - s.cogs)}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 flex-wrap items-center justify-end gap-x-2">
+                        <span className="text-sm font-semibold">{brl(s.gross)}</span>
+                        <EditLink tipo="venda" id={s.id} />
+                        <DeleteBtn action={deleteSale} id={s.id} date={date} />
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {expenses.length > 0 && (
+              <div>
+                <h3 className="mb-1 text-xs font-medium uppercase tracking-wide text-muted">Despesas</h3>
+                <ul className="divide-y divide-line">
+                  {expenses.map((x) => (
+                    <li key={x.id} className="flex items-center justify-between gap-3 py-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">{x.category}</p>
+                        <p className="truncate text-xs text-muted">{x.scope === "STORE" ? "Vendinha" : "Carro"}{x.description && ` · ${x.description}`}</p>
+                      </div>
+                      <div className="flex shrink-0 flex-wrap items-center justify-end gap-x-2">
+                        <span className="text-sm font-semibold text-neg">− {brl(x.amount)}</span>
+                        <EditLink tipo="despesa" id={x.id} />
+                        <DeleteBtn action={deleteExpense} id={x.id} date={date} />
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
         )}
-        <SaleForm date={date} products={products.map((p) => ({ id: p.id, name: p.name, price: p.price, stock: p.stock }))} machines={machineOpts} />
-
-        <div className="mt-4">
-          {sales.length === 0 ? (
-            <Empty>Nenhuma venda lançada neste dia.</Empty>
-          ) : (
-            <ul className="divide-y divide-line">
-              {sales.map((s) => (
-                <li key={s.id} className="flex items-start justify-between gap-3 py-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{s.items.map((i) => `${i.qty}× ${i.name}`).join(", ")}</p>
-                    <p className="text-xs text-muted">
-                      {METHODS[s.method as keyof typeof METHODS]}{s.machine ? ` · ${s.machine.name}` : ""}
-                      {s.fee > 0 && ` · taxa ${brl(s.fee)}`} · lucro {brl(s.net - s.cogs)}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <span className="text-sm font-semibold">{brl(s.gross)}</span>
-                    <EditLink tipo="venda" id={s.id} />
-                    <DeleteBtn action={deleteSale} id={s.id} date={date} />
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </Section>
-
-      <Section id="despesas" title="4. Despesas">
-        <ExpenseForm date={date} />
-        <div className="mt-4">
-          {expenses.length === 0 ? (
-            <Empty>Nenhuma despesa lançada neste dia.</Empty>
-          ) : (
-            <ul className="divide-y divide-line">
-              {expenses.map((x) => (
-                <li key={x.id} className="flex items-center justify-between gap-3 py-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{x.category}</p>
-                    <p className="truncate text-xs text-muted">{x.scope === "STORE" ? "Vendinha" : "Carro"}{x.description && ` · ${x.description}`}</p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <span className="text-sm font-semibold text-neg">− {brl(x.amount)}</span>
-                    <EditLink tipo="despesa" id={x.id} />
-                    <DeleteBtn action={deleteExpense} id={x.id} date={date} />
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
       </Section>
     </>
   );

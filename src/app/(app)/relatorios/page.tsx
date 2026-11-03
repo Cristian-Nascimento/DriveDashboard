@@ -51,8 +51,40 @@ export default async function Relatorios({ searchParams }: { searchParams: Promi
         {rows.length === 0 ? (
           <Empty>Sem lançamentos neste período.</Empty>
         ) : (
-          <div className="-mx-2 overflow-x-auto">
-            <table className="w-full min-w-[640px]">
+          <>
+            {/* telas estreitas: um cartão por dia, sem rolagem lateral */}
+            <ul className="divide-y divide-line lg:hidden">
+              {rows.map((d) => (
+                <li key={d.date} className="py-3">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <Link href={`/dia?date=${d.date}`} className="font-medium text-brand underline-offset-2 hover:underline">{labelDate(d.date)}</Link>
+                    <span className={`font-semibold ${d.profit < 0 ? "text-neg" : "text-pos"}`}>{brl(d.profit)}</span>
+                  </div>
+                  <dl className="mt-1.5 grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs text-muted">
+                    <div className="flex justify-between gap-2"><dt>Km</dt><dd>{d.km ? num(d.km, 1) : "–"}</dd></div>
+                    <div className="flex justify-between gap-2"><dt>Horas</dt><dd>{d.hours ? num(d.hours, 1) : "–"}</dd></div>
+                    <div className="flex justify-between gap-2"><dt>Corridas</dt><dd>{brl(d.rideNet)}</dd></div>
+                    <div className="flex justify-between gap-2"><dt>Vendinha</dt><dd>{brl(d.saleNet - d.cogs - d.storeExpenses)}</dd></div>
+                    <div className="flex justify-between gap-2"><dt>Despesas</dt><dd>{brl(d.carExpenses)}</dd></div>
+                  </dl>
+                </li>
+              ))}
+              <li className="py-3">
+                <div className="flex items-baseline justify-between gap-3 font-semibold">
+                  <span>Total</span>
+                  <span className={s.totalProfit < 0 ? "text-neg" : "text-pos"}>{brl(s.totalProfit)}</span>
+                </div>
+                <dl className="mt-1.5 grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs text-muted">
+                  <div className="flex justify-between gap-2"><dt>Km</dt><dd>{num(s.km, 1)}</dd></div>
+                  <div className="flex justify-between gap-2"><dt>Horas</dt><dd>{num(s.hours, 1)}</dd></div>
+                  <div className="flex justify-between gap-2"><dt>Corridas</dt><dd>{brl(s.rideNet)}</dd></div>
+                  <div className="flex justify-between gap-2"><dt>Vendinha</dt><dd>{brl(s.storeProfit)}</dd></div>
+                  <div className="flex justify-between gap-2"><dt>Despesas</dt><dd>{brl(s.carExpenses)}</dd></div>
+                </dl>
+              </li>
+            </ul>
+
+            <table className="hidden w-full lg:table">
               <thead>
                 <tr>
                   <th className="th">Dia</th>
@@ -89,7 +121,7 @@ export default async function Relatorios({ searchParams }: { searchParams: Promi
                 </tr>
               </tfoot>
             </table>
-          </div>
+          </>
         )}
       </Section>
 

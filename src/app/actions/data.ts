@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/session";
 import { isValidDate, todayStr } from "@/lib/dates";
@@ -15,9 +16,9 @@ function dateOf(form: FormData): string {
   return isValidDate(d) ? d : todayStr();
 }
 
-function back(date: string, anchor?: string): never {
+function back(date: string, anchor?: string, ok = "1"): never {
   revalidatePath("/", "layout");
-  redirect(`/dia?date=${date}&ok=1${anchor ? `#${anchor}` : ""}`);
+  redirect(`/dia?date=${date}&ok=${ok}${anchor ? `#${anchor}` : ""}`);
 }
 
 async function findMachine(userId: string, method: string, raw: FormDataEntryValue | null) {
@@ -25,6 +26,160 @@ async function findMachine(userId: string, method: string, raw: FormDataEntryVal
   const id = String(raw ?? "");
   if (!id) return null;
   return db.machine.findFirst({ where: { id, userId } });
+}
+
+/* ---------- Lançar o dia (um único botão salva tudo) ---------- */
+
+const dayEarning = z.object({
+  platform: z.string(),
+  method: z.string(),
+  machineId: z.string().nullable().optional(),
+  gross: z.number().int().positive(),
+  trips: z.number().int().min(0).max(999).catch(0),
+});
+const daySale = z.object({
+  method: z.string(),
+  machineId: z.string().nullable().optional(),
+  items: z.array(z.unknown()),
+});
+const daySaleItem = z.object({
+  productId: z.string().nullable().optional(),
+  name: z.string().trim().max(80).transform((n) => n || "Item avulso"),
+  qty: z.number().int().min(1).max(999),
+  unitPrice: z.number().int().positive(),
+});
+const dayExpense = z.object({
+  scope: z.enum(["CAR", "STORE"]),
+  category: z.string().trim().min(1).max(80),
+  amount: z.number().int().positive(),
+  description: z.string().max(200).catch(""),
+});
+const dayWork = z.object({ km: z.string(), hours: z.string(), note: z.string() });
+
+/** Mantém só as linhas válidas; o que estiver em branco ou inválido é ignorado em silêncio. */
+function valid<T>(schema: z.ZodType<T>, list: unknown): T[] {
+  return (Array.isArray(list) ? list : []).flatMap((r) => {
+    const p = schema.safeParse(r);
+    return p.success ? [p.data] : [];
+  });
+}
+
+export async function saveDay(form: FormData) {
+  const user = await requireUser();
+  const date = dateOf(form);
+
+  let raw: Record<string, unknown> = {};
+  try {
+    const parsed = JSON.parse(String(form.get("payload") ?? "{}"));
+    if (parsed && typeof parsed === "object") raw = parsed;
+  } catch {
+    /* payload ilegível: trata como vazio */
+  }
+
+  const machines = await db.machine.findMany({ where: { userId: user.id, active: true } });
+  const machineFor = (method: string, id?: string | null) =>
+    usesMachine(method) && id ? (machines.find((m) => m.id === id) ?? null) : null;
+
+  const ops: Prisma.PrismaPromise<unknown>[] = [];
+  let saved = 0;
+
+  // fechamento (km, horas, observação): grava se algo foi preenchido; se tudo foi esvaziado, limpa
+  const work = dayWork.safeParse(raw.workDay);
+  if (work.success) {
+    const km = Math.max(0, parseDecimal(work.data.km));
+    const hours = Math.max(0, parseDecimal(work.data.hours));
+    const note = work.data.note.trim().slice(0, 300);
+    if (km > 0 || hours > 0 || note) {
+      ops.push(
+        db.workDay.upsert({
+          where: { userId_date: { userId: user.id, date } },
+          update: { km, hours, note },
+          create: { userId: user.id, date, km, hours, note },
+        }),
+      );
+      saved++;
+    } else {
+      ops.push(db.workDay.deleteMany({ where: { userId: user.id, date } }));
+    }
+  }
+
+  for (const e of valid(dayEarning, raw.earnings)) {
+    if (!(e.platform in PLATFORMS) || !(e.method in METHODS)) continue;
+    const machine = machineFor(e.method, e.machineId);
+    const fee = computeFee(e.gross, e.method, machine);
+    ops.push(
+      db.earning.create({
+        data: {
+          userId: user.id,
+          date,
+          platform: e.platform,
+          method: e.method,
+          machineId: machine?.id ?? null,
+          trips: e.trips,
+          gross: e.gross,
+          fee,
+          net: e.gross - fee,
+          note: "",
+        },
+      }),
+    );
+    saved++;
+  }
+
+  const sales = valid(daySale, raw.sales)
+    .filter((s) => (SALE_METHODS as readonly string[]).includes(s.method))
+    .map((s) => ({ ...s, items: valid(daySaleItem, s.items).slice(0, 50) }))
+    .filter((s) => s.items.length > 0);
+  const productIds = sales.flatMap((s) => s.items.map((i) => i.productId)).filter((x): x is string => !!x);
+  const products = productIds.length ? await db.product.findMany({ where: { id: { in: productIds }, userId: user.id } }) : [];
+  const productById = new Map(products.map((p) => [p.id, p]));
+
+  for (const s of sales) {
+    const lines = s.items.map((i) => {
+      const p = i.productId ? productById.get(i.productId) : undefined;
+      return { productId: p?.id ?? null, name: p?.name ?? i.name, qty: i.qty, unitPrice: i.unitPrice, unitCost: p?.cost ?? 0 };
+    });
+    const gross = lines.reduce((a, l) => a + l.qty * l.unitPrice, 0);
+    const cogs = lines.reduce((a, l) => a + l.qty * l.unitCost, 0);
+    const machine = machineFor(s.method, s.machineId);
+    const fee = computeFee(gross, s.method, machine);
+    ops.push(
+      db.sale.create({
+        data: {
+          userId: user.id,
+          date,
+          method: s.method,
+          machineId: machine?.id ?? null,
+          gross,
+          fee,
+          net: gross - fee,
+          cogs,
+          note: "",
+          items: { create: lines },
+        },
+      }),
+      ...lines
+        .filter((l) => l.productId)
+        .map((l) => db.product.update({ where: { id: l.productId! }, data: { stock: { decrement: l.qty } } })),
+    );
+    saved++;
+  }
+
+  for (const x of valid(dayExpense, raw.expenses)) {
+    const allowed = x.scope === "CAR" ? CAR_CATEGORIES : STORE_CATEGORIES;
+    if (!allowed.includes(x.category)) continue;
+    ops.push(
+      db.expense.create({
+        data: { userId: user.id, date, scope: x.scope, category: x.category, description: x.description, amount: x.amount },
+      }),
+    );
+    saved++;
+  }
+
+  if (ops.length) await db.$transaction(ops);
+  // "s" muda a cada salvamento: faz o formulário recomeçar limpo em vez de repetir as linhas
+  revalidatePath("/", "layout");
+  redirect(`/dia?date=${date}&ok=${saved > 0 ? "1" : "vazio"}&s=${Date.now()}`);
 }
 
 /* ---------- Fechamento do dia ---------- */

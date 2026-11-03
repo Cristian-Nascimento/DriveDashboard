@@ -77,7 +77,7 @@ export function SaleForm({
 
       <div className="space-y-2">
         {rows.map((r) => (
-          <div key={r.key} className="grid grid-cols-[1fr_4rem_6rem_2rem] items-end gap-2">
+          <div key={r.key} className="grid grid-cols-[minmax(0,1fr)_3.5rem_5.5rem_2rem] items-end gap-2 sm:grid-cols-[minmax(0,1fr)_4rem_6rem_2rem]">
             <div>
               <label className="label">Produto</label>
               <select className="input" value={r.productId} onChange={(e) => pick(r.key, e.target.value)}>

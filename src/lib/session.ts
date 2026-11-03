@@ -1,4 +1,5 @@
 import { SignJWT, jwtVerify } from "jose";
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "./db";
@@ -44,10 +45,11 @@ export async function getUserId(): Promise<string | null> {
   }
 }
 
-export async function requireUser() {
+// cache(): layout e página chamam requireUser na mesma requisição; só a primeira consulta o banco.
+export const requireUser = cache(async () => {
   const uid = await getUserId();
   if (!uid) redirect("/login");
   const user = await db.user.findUnique({ where: { id: uid }, select: { id: true, name: true, email: true } });
   if (!user) redirect("/login");
   return user;
-}
+});
